@@ -1,0 +1,6 @@
+final_model.h5
+model/*.h5
+final_model.h5
+.env
+node_modules
+venv
