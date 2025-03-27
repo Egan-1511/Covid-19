@@ -13,4 +13,5 @@ gdown==4.7.1
 psycopg2-binary==2.9.9
 bcrypt
 flask_cors
+flask-jwt-extended
 
