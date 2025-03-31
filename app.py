@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ✅ Initialize Flask App
-app = Flask(__name__, template_folder="template", static_folder="static")
+app = Flask(__name__)
 CORS(app)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "default_secret_key")
 jwt = JWTManager(app)
@@ -56,8 +56,8 @@ def calculate_symptom_weight(symptom):
     return symptom_percentage
 
 @app.route("/")
-def index():
-    return "Hello_"
+def home():
+    return 'template/project/index.html'
 
 # ✅ Prediction Route (With File Validation)
 @app.route('/predict', methods=['POST'])
@@ -147,4 +147,4 @@ def protected():
     return jsonify({"message": f"Hello, {get_jwt_identity()}! You have access."}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)
