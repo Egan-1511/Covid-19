@@ -35,7 +35,11 @@ def download_model():
     if not os.path.exists(MODEL_PATH):
         logging.info("📥 Downloading model from Google Drive...")
         url = f"https://drive.google.com/uc?export=download&id={GDRIVE_FILE_ID}"
-        gdown.download(url, MODEL_PATH, quiet=False)
+        try:
+            gdown.download(url, MODEL_PATH, quiet=False)
+        except Exception as e:
+            logging.error(f"🚨 Model download failed: {e}")
+            exit(1)  # Stop app if model download fails
 
 # ✅ Load Trained Model
 download_model()
@@ -147,4 +151,4 @@ def protected():
     return jsonify({"message": f"Hello, {get_jwt_identity()}! You have access."}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
