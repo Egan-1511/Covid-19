@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, Youtube, AlertCircle, Phone, Shield, Book } from 'lucide-react';
+import { ExternalLink, AlertCircle, Phone, Shield, Book } from 'lucide-react';
 
 const Learn: React.FC = () => {
   return (

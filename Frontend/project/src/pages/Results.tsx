@@ -1,53 +1,40 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, Phone, Stethoscope, FileText } from 'lucide-react';
-import type { PredictionResult } from '../types';
+import { AlertCircle, Phone, Stethoscope, Share2, MessageSquare } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+// Removed unused PredictionResult interface
 
 const Results: React.FC = () => {
-  const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
-
-  // In a real app, this would come from the API/prediction service
-  const mockResult: PredictionResult = {
-    likelihood: 85,
-    confidence: 'High',
-    recommendations: [
-      'Isolate immediately and avoid contact with others',
-      'Schedule a PCR test for confirmation',
-      'Monitor your symptoms and seek medical attention if they worsen',
-      'Ensure proper ventilation in your living space'
-    ]
+  const [consulting, setConsulting] = useState(false);
+  const location = useLocation();
+  
+  // Get the actual prediction data from navigation state
+  const predictionData = location.state?.result ?? {
+    likelihood: 0,
+    recommendation: 'No prediction available'
   };
 
-  const handleDownloadReport = async () => {
-    setDownloading(true);
-    try {
-      // In a real app, this would call an API endpoint to generate and download the PDF
-      const response = await fetch('/api/generate-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockResult),
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'covid-prediction-report.pdf';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    } catch (error) {
-      console.error('Error downloading report:', error);
-    } finally {
-      setDownloading(false);
+  // Define recommendations based on likelihood
+  const getRecommendations = (likelihood: number) => {
+    if (likelihood >= 70) {
+      return [
+        'Isolate immediately and avoid contact with others',
+        'Schedule a PCR test for confirmation',
+        'Monitor your symptoms and seek medical attention if they worsen',
+        'Ensure proper ventilation in your living space'
+      ];
+    } else {
+      return [
+        'Continue monitoring your symptoms',
+        'Practice social distancing and wear a mask',
+        'Maintain good hygiene practices',
+        'Consider getting tested if symptoms worsen'
+      ];
     }
   };
+
+  const recommendations = getRecommendations(predictionData.likelihood);
 
   const handleShareResults = async () => {
     setSharing(true);
@@ -59,6 +46,19 @@ const Results: React.FC = () => {
       console.error('Error sharing results:', error);
     } finally {
       setSharing(false);
+    }
+  };
+
+  const handleConsultDoctor = async () => {
+    setConsulting(true);
+    try {
+      // Simulate connecting to a telemedicine service
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      alert('Connecting you to an available healthcare professional...');
+    } catch (error) {
+      console.error('Error initiating consultation:', error);
+    } finally {
+      setConsulting(false);
     }
   };
 
@@ -77,43 +77,36 @@ const Results: React.FC = () => {
           <div className="relative h-4 bg-gray-700 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${mockResult.likelihood}%` }}
+              animate={{ width: `${predictionData.likelihood}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 to-pink-500"
             />
           </div>
           <div className="mt-2 flex justify-between text-sm">
             <span>Low Risk</span>
-            <span className="font-bold text-purple-400">{mockResult.likelihood}%</span>
+            <span className="font-bold text-purple-400">{predictionData.likelihood}%</span>
             <span>High Risk</span>
           </div>
         </div>
 
-        {/* Confidence Level */}
+        {/* Confidence Level based on likelihood */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">AI Confidence Level</h2>
           <div className="flex items-center space-x-3">
-            <div className={`px-4 py-2 rounded-full ${
-              mockResult.confidence === 'High' 
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
-                : 'bg-gray-700/50 text-gray-400'
-            }`}>
-              High
-            </div>
-            <div className={`px-4 py-2 rounded-full ${
-              mockResult.confidence === 'Medium'
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
-                : 'bg-gray-700/50 text-gray-400'
-            }`}>
-              Medium
-            </div>
-            <div className={`px-4 py-2 rounded-full ${
-              mockResult.confidence === 'Low'
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
-                : 'bg-gray-700/50 text-gray-400'
-            }`}>
-              Low
-            </div>
+            {['Low', 'Medium', 'High'].map((level) => (
+              <div
+                key={level}
+                className={`px-4 py-2 rounded-full ${
+                  (predictionData.likelihood >= 70 && level === 'High') ||
+                  (predictionData.likelihood >= 30 && predictionData.likelihood < 70 && level === 'Medium') ||
+                  (predictionData.likelihood < 30 && level === 'Low')
+                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500'
+                    : 'bg-gray-700/50 text-gray-400'
+                }`}
+              >
+                {level}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -121,7 +114,7 @@ const Results: React.FC = () => {
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Recommendations</h2>
           <div className="space-y-3">
-            {mockResult.recommendations.map((rec, index) => (
+            {recommendations.map((rec, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
@@ -173,31 +166,31 @@ const Results: React.FC = () => {
         >
           <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
             <Stethoscope className="w-6 h-6 text-purple-500" />
-            <span>Next Steps</span>
+            <span>Take Action</span>
           </h2>
           <div className="space-y-3">
             <div className="p-3 bg-gray-700/30 rounded-lg">
-              <h3 className="font-semibold mb-2">Download Report</h3>
-              <p className="text-sm text-gray-300 mb-3">Get a detailed PDF report of your prediction results</p>
-              <button 
-                className={`flex items-center space-x-2 text-purple-400 hover:text-purple-300 ${downloading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={handleDownloadReport}
-                disabled={downloading}
-              >
-                <FileText className="w-4 h-4" />
-                <span>{downloading ? 'Generating Report...' : 'Export PDF Report'}</span>
-              </button>
-            </div>
-            <div className="p-3 bg-gray-700/30 rounded-lg">
-              <h3 className="font-semibold mb-2">Share with Doctor</h3>
-              <p className="text-sm text-gray-300 mb-3">Send these results securely to your healthcare provider</p>
+              <h3 className="font-semibold mb-2">Share Results</h3>
+              <p className="text-sm text-gray-300 mb-3">Share your results securely with healthcare providers</p>
               <button 
                 className={`flex items-center space-x-2 text-purple-400 hover:text-purple-300 ${sharing ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onClick={handleShareResults}
                 disabled={sharing}
               >
-                <Stethoscope className="w-4 h-4" />
+                <Share2 className="w-4 h-4" />
                 <span>{sharing ? 'Sharing...' : 'Share Results'}</span>
+              </button>
+            </div>
+            <div className="p-3 bg-gray-700/30 rounded-lg">
+              <h3 className="font-semibold mb-2">Online Consultation</h3>
+              <p className="text-sm text-gray-300 mb-3">Connect with a healthcare professional instantly</p>
+              <button 
+                className={`flex items-center space-x-2 text-purple-400 hover:text-purple-300 ${consulting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleConsultDoctor}
+                disabled={consulting}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>{consulting ? 'Connecting...' : 'Start Consultation'}</span>
               </button>
             </div>
           </div>

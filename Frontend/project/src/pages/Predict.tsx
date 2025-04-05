@@ -63,6 +63,12 @@ const Predict: React.FC = () => {
   const [followUpAnswers, setFollowUpAnswers] = useState<Record<string, string>>({});
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [predictionResult, setPredictionResult] = useState<{
+    likelihood: number;
+    recommendation: string;
+  } | null>(null);
 
   const handleSymptomClick = (symptom: Symptom) => {
     const newSelected = new Set(selectedSymptoms);
@@ -84,40 +90,98 @@ const Predict: React.FC = () => {
       setCurrentFollowUp(null);
     }
   };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Reset states
+    setUploadError(null);
+    setIsUploading(true);
+    setPredictionResult(null);
+    
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+        setUploadError('Please select a CT scan image');
+        setIsUploading(false);
+        return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+        setUploadError('Invalid file type. Please upload JPEG or PNG files only');
+        setIsUploading(false);
+        return;
+    }
 
     const formData = new FormData();
-    formData.append('name', name);
-    formData.append('age', age);
-    formData.append('ct_scan', file);
+    formData.append('image', file);
+    formData.append('name', name.trim());
+    formData.append('age', age.toString());
     
-    // Add symptoms data
-    const symptomsData = Array.from(selectedSymptoms).reduce((acc, symptomId) => ({
-      ...acc,
-      [symptomId]: true,
-      [`${symptomId}_details`]: followUpAnswers[symptomId]
-    }), {});
+    // Map symptom IDs to the expected backend format
+    const symptomMapping: Record<string, string> = {
+        'cough': 'cough',
+        'fever': 'fever',
+        'breathing': 'shortness of breath',
+        'fatigue': 'fatigue',
+        'taste_smell': 'loss of taste or smell',
+        'sore_throat': 'cold'
+    };
     
-    formData.append('symptoms', JSON.stringify(symptomsData));
+    // Convert selected symptoms to backend format
+    const backendSymptoms = Array.from(selectedSymptoms)
+        .map(symptomId => symptomMapping[symptomId])
+        .filter(Boolean);
+    
+    // Append symptoms as a JSON string array
+    formData.append('symptoms', JSON.stringify(backendSymptoms));
 
     try {
-      // In a real app, send formData to backend
-      const response = await fetch('http://127.0.0.1:5000/predict', {
-      method: 'POST',
-      body: formData
-   });
-      
-      // Simulate API call
-      setTimeout(() => {
-        navigate('/results');
-      }, 2000);
+        const response = await fetch('http://127.0.0.1:5000/predict', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        console.log('Raw API response:', result);
+        console.log('Response keys:', Object.keys(result));
+
+        // Safely access nested prediction data
+        if (!result?.prediction?.likelihood) {
+            throw new Error('Invalid response format from server');
+        }
+
+        const predictionData = {
+            likelihood: Math.round(result.prediction.likelihood),
+            recommendation: result.prediction.recommendation
+        };
+
+        console.log('Formatted prediction:', predictionData);
+        setPredictionResult(predictionData);
+        
+        navigate('/results', { 
+            state: { 
+                result: predictionData,
+                name: name.trim(),
+                age: age
+            } 
+        });
+        
     } catch (error) {
-      console.error('Error uploading data:', error);
+        console.error('Upload failed:', error);
+        setUploadError(
+            error instanceof Error 
+                ? error.message 
+                : 'Failed to process prediction'
+        );
+        setPredictionResult(null);
+    } finally {
+        setIsUploading(false);
     }
-  };
+};
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -249,26 +313,38 @@ const Predict: React.FC = () => {
           className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700"
         >
           <h2 className="text-2xl font-bold mb-6">Upload Your CT Scan</h2>
-          <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center">
+          <div className={`border-2 border-dashed rounded-xl p-8 text-center
+            ${uploadError ? 'border-red-500 bg-red-500/10' : 'border-gray-600'}`}>
             <input
               type="file"
               id="ct-scan"
               className="hidden"
-              accept="image/*"
+              accept="image/jpeg,image/png"
               onChange={handleFileUpload}
+              disabled={isUploading}
             />
             <label
               htmlFor="ct-scan"
-              className="cursor-pointer flex flex-col items-center space-y-4"
+              className={`cursor-pointer flex flex-col items-center space-y-4 
+                ${isUploading ? 'opacity-50' : ''}`}
             >
-              <Upload className="w-16 h-16 text-purple-500" />
+              <Upload className={`w-16 h-16 ${uploadError ? 'text-red-500' : 'text-purple-500'}`} />
               <div className="text-lg">
-                Drag and drop your CT scan here or <span className="text-purple-400">browse</span>
+                {isUploading ? 'Uploading...' : 
+                  <>Drag and drop your CT scan here or <span className="text-purple-400">browse</span></>
+                }
               </div>
               <p className="text-sm text-gray-400">Supported formats: JPEG, PNG</p>
             </label>
           </div>
           
+          {uploadError && (
+            <div className="mt-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-400 flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
           <div className="mt-6 flex items-start space-x-2 text-amber-400">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p className="text-sm">

@@ -11,7 +11,7 @@ const Navigation: React.FC = () => {
           <Link to="/" className="flex items-center space-x-2">
             <Brain className="w-8 h-8 text-purple-500" />
             <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
-              COVID AI Predict
+              COVID PREDICTION
             </span>
           </Link>
           

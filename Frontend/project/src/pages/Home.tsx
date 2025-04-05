@@ -100,6 +100,7 @@ const Home: React.FC = () => {
                 <span className="text-3xl font-bold text-white">P</span>
               </div>
               <h3 className="text-xl font-semibold">Dr. Poonguzhali</h3>
+              <h3 className="text-xl font-semibold">M.C.A,M.Phil,PhD.</h3>
               <p className="text-purple-400 mt-1">HOD & Project Guide</p>
             </div>
           </div>
@@ -109,13 +110,13 @@ const Home: React.FC = () => {
         <h3 className="text-2xl font-semibold mb-6 text-center text-purple-400">Team Members</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
-            "Egan",
-            "Gunaranjini",
-            "Ashika Mariyum",
-            "Jo Daniel",
-            "Tamilzharan",
-            "Pradeep",
-            "Kavya"
+            "EGAN",
+            "GUNARANJANI",
+            "ASHKA MARIYUM",
+            "JOE DANIEL",
+            "TAMILZHARASAN",
+            "PRADEEP",
+            "KAVIYA"
           ].map((name) => (
             <div key={name} className="text-center p-4 bg-gray-700/30 rounded-lg transform hover:scale-105 transition-all">
               <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">

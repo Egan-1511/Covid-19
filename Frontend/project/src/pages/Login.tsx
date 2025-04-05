@@ -47,7 +47,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <div className="flex flex-col items-center">
           <Brain className="w-12 h-12 text-purple-500" />
           <h2 className="mt-4 text-center text-3xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-500 text-transparent bg-clip-text">
-            COVID AI Predict
+            COVID Prediction
           </h2>
           <p className="mt-2 text-center text-sm text-gray-300">
             Sign in to access the prediction system

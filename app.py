@@ -18,7 +18,13 @@ load_dotenv()
 
 # ✅ Initialize Flask App
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:5173"],  # Vite's default port
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "default_secret_key")
 jwt = JWTManager(app)
 
@@ -61,7 +67,7 @@ def calculate_symptom_weight(symptom):
 
 @app.route("/")
 def home():
-    return 'template/project/index.html'
+    return 'Backend is running'
 
 # ✅ Prediction Route (With File Validation)
 @app.route('/predict', methods=['POST'])
@@ -90,11 +96,16 @@ def predict():
 
     # ✅ Final Weighted Prediction
     final_prediction = (scan_prediction * 0.8) + symptom_weight
+    
+    # Return clean, consistent JSON format
     result = {
-        "COVID-19 Likelihood": f"{final_prediction:.2f}%",
-        "Recommendation": "See a doctor" if final_prediction >= 70 else "Monitor symptoms nothing to worry about"
+        "prediction": {
+            "likelihood": float(final_prediction),
+            "recommendation": "See a doctor" if final_prediction >= 70 else "Monitor symptoms"
+        }
     }
 
+    print("Returning JSON:", result)  # Debug log
     return jsonify(result), 200
 
 # ✅ User Authentication & Database Functions
