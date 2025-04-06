@@ -20,23 +20,43 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      if (formData.password !== formData.confirmPassword) {
-        throw new Error('Passwords do not match');
-      }
+        // Password validation
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        
+        if (!passwordRegex.test(formData.password)) {
+            throw new Error(
+                'Password must contain at least 8 characters, including uppercase, lowercase, number and special character'
+            );
+        }
 
-      if (formData.password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
+        if (formData.password !== formData.confirmPassword) {
+            throw new Error('Passwords do not match');
+        }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch('http://127.0.0.1:5000/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: formData.email,
+                password: formData.password,
+                name: formData.name
+            }),
+        });
 
-      // Registration successful, redirect to login
-      navigate('/login');
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Registration failed');
+        }
+
+        // Registration successful, redirect to login
+        navigate('/login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+        setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 
@@ -123,6 +143,9 @@ const Register: React.FC = () => {
                   placeholder="Password"
                 />
               </div>
+              <p className="mt-1 text-sm text-gray-400">
+                Password must contain at least 8 characters, including uppercase, lowercase, number and special character
+              </p>
             </div>
 
             <div>

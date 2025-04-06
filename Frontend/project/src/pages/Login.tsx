@@ -19,19 +19,34 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      // Here you would typically make an API call to authenticate
-      // For now, we'll simulate an API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch('http://127.0.0.1:5000/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                email: email.trim(),
+                password: password 
+            }),
+        });
 
-      if (!email.includes('@') || password.length < 6) {
-        throw new Error('Invalid credentials');
-      }
+        const data = await response.json();
+        console.log('Login response:', data); // Debug log
 
-      onLoginSuccess();
+        if (!response.ok) {
+            throw new Error(data.error || 'Login failed');
+        }
+
+        // Store token and user info
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        onLoginSuccess();
     } catch (err) {
-      setError('Invalid email or password');
+        console.error('Login error:', err); // Debug log
+        setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 

@@ -118,43 +118,92 @@ def db_connection():
         )""")
         conn.commit()
 
+def init_db():
+    with sqlite3.connect("users.db") as conn:
+        conn.execute("""
+        DROP TABLE IF EXISTS users;
+        """)
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        conn.commit()
+
+# Initialize database on startup
+init_db()
+
 @app.route("/register", methods=["POST"])  # ✅ Fixed from GET to POST
 def register():
     data = request.json
-    username = data.get("username")
+    email = data.get("email")
     password = data.get("password")
+    name = data.get("name")
 
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
 
-    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    # Basic email validation
+    if not '@' in email or not '.' in email:
+        return jsonify({"error": "Invalid email format"}), 400
+
+    # Hash the password
+    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+
     try:
         with sqlite3.connect("users.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+            conn.execute(
+                "INSERT INTO users (email, password, name) VALUES (?, ?, ?)",
+                (email, hashed_password.decode(), name)
+            )
             conn.commit()
-        return jsonify({"message": "User registered successfully!"}), 201
+        return jsonify({"message": "Registration successful"}), 201
     except sqlite3.IntegrityError:
-        return jsonify({"error": "Username already exists"}), 409
+        return jsonify({"error": "Email already registered"}), 409
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.json
-    username, password = data.get("username"), data.get("password")
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-    if not username or not password:
-        return jsonify({"error": "Username and password are required"}), 400
+        email = data.get("email")
+        password = data.get("password")
 
-    with sqlite3.connect("users.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
-        user = cursor.fetchone()
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
 
-    if user and bcrypt.checkpw(password.encode(), user[0].encode()):
-        access_token = create_access_token(identity=username)
-        return jsonify({"access_token": access_token}), 200
+        print(f"Attempting login for email: {email}")  # Debug log
 
-    return jsonify({"error": "Invalid credentials"}), 401
+        with sqlite3.connect("users.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT password, name FROM users WHERE email = ?", (email,))
+            user = cursor.fetchone()
+
+            if not user:
+                return jsonify({"error": "User not found"}), 401
+
+            if not bcrypt.checkpw(password.encode(), user[0].encode()):
+                return jsonify({"error": "Invalid password"}), 401
+
+            # Generate token and return user data
+            access_token = create_access_token(identity=email)
+            return jsonify({
+                "access_token": access_token,
+                "user": {
+                    "email": email,
+                    "name": user[1]
+                }
+            }), 200
+
+    except Exception as e:
+        print(f"Login error: {str(e)}")  # Debug log
+        return jsonify({"error": "Server error during login"}), 500
 
 @app.route("/protected", methods=["GET"])
 @jwt_required()
