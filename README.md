@@ -35,5 +35,5 @@ Accurate and early detection of COVID-19 from CT scans is crucial in helping med
 👉 [Project frontend live demo (Not backend only front end, Backend was in this github respository and also code for your local access of frontend](https://covid-19-predictor.netlify.app/)
 
 ## 🙋‍♂️ Author
-- **Your Name**
+- **EGAN**
 - [LinkedIn](www.linkedin.com/in/egang) 
